@@ -2,221 +2,274 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <cstdlib>
+#include <ctime>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
-using namespace chrono;
+using namespace std::chrono;
 
-vector<int> numbers;
-
-// ----------- Merge Sort Functions -------------
-void merge(vector<int>& a, int l, int m, int r) {
-    vector<int> L(a.begin() + l, a.begin() + m + 1);
-    vector<int> R(a.begin() + m + 1, a.begin() + r + 1);
-    int i = 0, j = 0, k = l;
-
-    // Merge the two sorted halves
-    while (i < L.size() && j < R.size()) {
-        if (L[i] <= R[j]) a[k++] = L[i++];
-        else a[k++] = R[j++];
-    }
-    // Copy remaining elements
-    while (i < L.size()) a[k++] = L[i++];
-    while (j < R.size()) a[k++] = R[j++];
-}
-
-void mergeSort(vector<int>& a, int l, int r) {
-    if (l >= r) return;
-    int m = (l + r) / 2;
-    mergeSort(a, l, m);
-    mergeSort(a, m + 1, r);
-    merge(a, l, m, r);
-}
-
-// ----------- Binary Search Function -------------
-int binarySearch(vector<int>& a, int x) {
-    int l = 0, r = a.size() - 1;
-    while (l <= r) {
-        int m = (l + r) / 2;
-        if (a[m] == x) return m;
-        if (a[m] < x) l = m + 1;
-        else r = m - 1;
+// Binary Search (Iterative)
+int binarySearch(const vector<int>& arr, int target) {
+    int left = 0;
+    int right = arr.size() - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
     }
     return -1;
 }
 
-// ----------- Exponential Search Function -------------
-int exponentialSearch(vector<int>& a, int x) {
-    if (a.empty()) return -1;
-    if (a[0] == x) return 0;
-
+// Exponential Search
+int exponentialSearch(const vector<int>& arr, int target) {
+    if (arr.empty()) return -1;
+    if (arr[0] == target) return 0;
+    
     int i = 1;
-    // Find range where the element may exist
-    while (i < a.size() && a[i] <= x) i *= 2;
-
-    int l = i / 2;
-    int r = min(i, (int)a.size() - 1);
-
-    // Binary Search within the found range
-    while (l <= r) {
-        int m = (l + r) / 2;
-        if (a[m] == x) return m;
-        if (a[m] < x) l = m + 1;
-        else r = m - 1;
+    while (i < arr.size() && arr[i] <= target) 
+        i *= 2;
+    
+    int low = i / 2;
+    int high = min(i, static_cast<int>(arr.size()) - 1);
+    
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
     }
     return -1;
 }
 
-// ----------- Display Function -------------
-void displayList() {
-    if (numbers.empty()) {
-        cout << "The list is empty.\n";
-        return;
+// Quick Sort helpers
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    
+    for (int j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
     }
-    cout << "List elements: ";
-    for (int num : numbers) cout << num << " ";
-    cout << "\n";
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
 }
 
-// ----------- Menu Function -------------
-void showMenu() {
-    cout << "\nWhat action would you like to perform on the list?\n";
-    cout << "1. Add more elements.\n";
-    cout << "2. Sort the list using Selection Sort. [Not implemented]\n";
-    cout << "3. Sort the list using Merge Sort.\n";
-    cout << "4. Search for an element using Binary Search.\n";
-    cout << "5. Search for an element using Exponential Search.\n";
-    cout << "6. Display the list.\n";
-    cout << "0. Exit the program\n";
-    cout << ">\n";
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
 }
 
-// ----------- Main Program -------------
+// Merge Sort helpers
+void merge(vector<int>& arr, int left, int mid, int right) {
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
+
+    vector<int> L(n1), R(n2);
+    for (int i = 0; i < n1; i++) L[i] = arr[left + i];
+    for (int j = 0; j < n2; j++) R[j] = arr[mid + 1 + j];
+
+    int i = 0, j = 0, k = left;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) arr[k++] = L[i++];
+        else arr[k++] = R[j++];
+    }
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+}
+
+void mergeSort(vector<int>& arr, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
+    }
+}
+
 int main() {
+    vector<int> data;
+    bool isSorted = false;
     string input;
-    cout << "Enter a number: ";
 
-    // Input elements until "done"
-    while (cin >> input && input != "done") {
+    cout << "Enter numbers one by one. Type 'done' when finished." << endl;
+    while (true) {
+        cout << "Enter a number: ";
+        cin >> input;
+        
+        if (input == "done") {
+            cout << "Input complete.\n" << endl;
+            break;
+        }
+        
         try {
             int num = stoi(input);
-            numbers.push_back(num);
-            cout << "Enter a number: ";
+            data.push_back(num);
+            isSorted = false;
         } catch (...) {
-            cout << "Invalid input. Enter a number or type 'done': ";
+            cout << "Invalid input. Please enter a number or 'done'." << endl;
         }
     }
 
-    cout << "Input complete.\n";
+    while (true) {
+        cout << "\nWhat action would you like to perform on the list?" << endl;
+        cout << "1. Add more elements." << endl;
+        cout << "2. Sort the list using Quick Sort" << endl;
+        cout << "3. Sort the list using Merge Sort" << endl;
+        cout << "4. Search for an element using Binary Search" << endl;
+        cout << "5. Search for an element using Exponential Search" << endl;
+        cout << "6. Display the list" << endl;
+        cout << "9. Exit the program" << endl;
+        cout << "> ";
 
-    int choice;
-    do {
-        showMenu();
+        int choice;
         cin >> choice;
 
+        if (choice == 9) break;
+
         switch (choice) {
-            case 1: {
-                // Add more numbers
-                cout << "Enter a number: ";
-                while (cin >> input && input != "done") {
+            case 1: {  // Add elements
+                cout << "\nEnter numbers one by one. Type 'done' when finished." << endl;
+                cin.ignore();
+                while (true) {
+                    cout << "Enter a number: ";
+                    getline(cin, input);
+                    
+                    if (input == "done") {
+                        cout << "Input complete.\n" << endl;
+                        break;
+                    }
+                    
                     try {
                         int num = stoi(input);
-                        numbers.push_back(num);
-                        cout << "Enter a number: ";
+                        data.push_back(num);
+                        isSorted = false;
                     } catch (...) {
-                        cout << "Invalid input. Enter a number or type 'done': ";
+                        cout << "Invalid input. Please enter a number or 'done'." << endl;
                     }
                 }
-                cout << "Input complete.\n";
                 break;
             }
-
-            case 2: {
-                // Selection sort not implemented
-                cout << "Selection Sort not implemented.\n";
-                break;
-            }
-
-            case 3: {
-                // Perform Merge Sort
-                if (numbers.empty()) {
-                    cout << "List is empty.\n";
+            
+            case 2: {  // Quick Sort
+                if (data.empty()) {
+                    cout << "List is empty!" << endl;
                     break;
                 }
+                
+                vector<int> temp = data;
                 auto start = high_resolution_clock::now();
-                mergeSort(numbers, 0, numbers.size() - 1);
+                quickSort(temp, 0, temp.size() - 1);
                 auto end = high_resolution_clock::now();
-                duration<double, milli> time = end - start;
-
-                cout << "The list has been sorted using Merge Sort.\n";
-                cout << "Time taken: " << time.count() << " ms\n";
+                
+                data = temp;
+                isSorted = true;
+                
+                double time_taken = duration_cast<nanoseconds>(end - start).count() / 1e6;
+                cout << "\nThe list has been sorted using Quick Sort." << endl;
+                cout << "Time taken: " << fixed << setprecision(7) << time_taken << " ms\n" << endl;
                 break;
             }
-
-            case 4: {
-                // Binary Search
-                if (numbers.empty()) {
-                    cout << "List is empty.\n";
+            
+            case 3: {  // Merge Sort
+                if (data.empty()) {
+                    cout << "List is empty!" << endl;
                     break;
                 }
-                int key;
+                
+                vector<int> temp = data;
+                auto start = high_resolution_clock::now();
+                mergeSort(temp, 0, temp.size() - 1);
+                auto end = high_resolution_clock::now();
+                
+                data = temp;
+                isSorted = true;
+                
+                double time_taken = duration_cast<nanoseconds>(end - start).count() / 1e6;
+                cout << "\nThe list has been sorted using Merge Sort." << endl;
+                cout << "Time taken: " << fixed << setprecision(7) << time_taken << " ms\n" << endl;
+                break;
+            }
+            
+            case 4: {  // Binary Search
+                if (!isSorted) {
+                    cout << "Error: List must be sorted first!" << endl;
+                    break;
+                }
+                
+                int target;
                 cout << "Enter element to search: ";
-                cin >> key;
+                cin >> target;
+                
                 auto start = high_resolution_clock::now();
-                int index = binarySearch(numbers, key);
+                int result = binarySearch(data, target);
                 auto end = high_resolution_clock::now();
-                duration<double, milli> time = end - start;
-
-                if (index != -1)
-                    cout << "Element found at index: " << index << "\n";
-                else
-                    cout << "Element not found.\n";
-
-                cout << "Time taken: " << time.count() << " ms\n";
+                
+                double time_taken = duration_cast<nanoseconds>(end - start).count() / 1e6;
+                
+                if (result != -1) {
+                    cout << "Element found at index " << result << endl;
+                } else {
+                    cout << "Element not found in the list" << endl;
+                }
+                cout << "Time taken: " << fixed << setprecision(7) << time_taken << " ms\n" << endl;
                 break;
             }
-
-            case 5: {
-                // Exponential Search
-                if (numbers.empty()) {
-                    cout << "List is empty.\n";
+            
+            case 5: {  // Exponential Search
+                if (!isSorted) {
+                    cout << "Error: List must be sorted first!" << endl;
                     break;
                 }
-                int key;
+                
+                int target;
                 cout << "Enter element to search: ";
-                cin >> key;
+                cin >> target;
+                
                 auto start = high_resolution_clock::now();
-                int index = exponentialSearch(numbers, key);
+                int result = exponentialSearch(data, target);
                 auto end = high_resolution_clock::now();
-                duration<double, milli> time = end - start;
-
-                if (index != -1)
-                    cout << "Element found at index: " << index << "\n";
-                else
-                    cout << "Element not found.\n";
-
-                cout << "Time taken: " << time.count() << " ms\n";
+                
+                double time_taken = duration_cast<nanoseconds>(end - start).count() / 1e6;
+                
+                if (result != -1) {
+                    cout << "Element found at index " << result << endl;
+                } else {
+                    cout << "Element not found in the list" << endl;
+                }
+                cout << "Time taken: " << fixed << setprecision(7) << time_taken << " ms\n" << endl;
                 break;
             }
-
-            case 6: {
-                // Display the current list
-                displayList();
+            
+            case 6: {  // Display list
+                if (data.empty()) {
+                    cout << "List is empty!" << endl;
+                    break;
+                }
+                
+                cout << "\nCurrent list (" << data.size() << " elements): ";
+                for (int i = 0; i < data.size(); i++) {
+                    cout << data[i];
+                    if (i < data.size() - 1) cout << ", ";
+                }
+                cout << "\n" << endl;
                 break;
             }
-
-            case 0: {
-                // Exit the program
-                cout << "Exiting...\n";
-                break;
-            }
-
-            default: {
-                cout << "Invalid choice.\n";
-                break;
-            }
+            
+            default:
+                cout << "Invalid choice! Please try again." << endl;
         }
-    } while (choice != 0);
+    }
 
     return 0;
 }
